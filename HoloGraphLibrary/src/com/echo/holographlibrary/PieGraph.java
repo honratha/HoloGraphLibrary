@@ -23,14 +23,31 @@
 
 package com.echo.holographlibrary;
 
+import java.util.ArrayList;
+
 import android.content.Context;
-import android.graphics.*;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Path.Direction;
+import android.graphics.PixelFormat;
+import android.graphics.Point;
+import android.graphics.PorterDuff.Mode;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.Region;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 
-import java.util.ArrayList;
 
 public class PieGraph extends View {
 
@@ -39,15 +56,22 @@ public class PieGraph extends View {
 	private Path path = new Path();
 	
 	private int indexSelected = -1;
-	private int thickness = 50;
+	private int thickness;
 	private OnSliceClickedListener listener;
 	
+	private boolean drawCompleted = false;
+	
+	private Bitmap centerBitmap;
+	private Matrix m = new Matrix();
 	
 	public PieGraph(Context context) {
 		super(context);
+		thickness = (int) (25f * context.getResources().getDisplayMetrics().density);
 	}
+	
 	public PieGraph(Context context, AttributeSet attrs) {
 		super(context, attrs);
+		thickness = (int) (25f * context.getResources().getDisplayMetrics().density);
 	}
 	
 	public void onDraw(Canvas canvas) {
@@ -58,8 +82,8 @@ public class PieGraph extends View {
 		path.reset();
 		
 		float currentAngle = 270;
-        float currentSweep;
-        int totalValue = 0;
+		float currentSweep = 0;
+		int totalValue = 0;
 		float padding = 2;
 		
 		midX = getWidth()/2;
@@ -71,6 +95,25 @@ public class PieGraph extends View {
 		}
 		radius -= padding;
 		innerRadius = radius - thickness;
+		
+		if(centerBitmap != null){
+			m.reset();
+			
+			float scaleX = (float) (radius * 2) / (float) centerBitmap.getWidth();
+			float scaleY = (float) (radius * 2) / (float) centerBitmap.getHeight();
+			float minScale = Math.min(scaleX, scaleY);
+			
+			float tx = Math.max(0,
+			        0.5f * ((float) getWidth() - (minScale * centerBitmap.getWidth())));
+			float ty = Math.max(0,
+			        0.5f * ((float) getHeight() - (minScale * centerBitmap.getHeight())));
+			
+			m.postScale(minScale, minScale);
+			m.postTranslate(tx, ty);
+			canvas.drawBitmap(centerBitmap, m, paint);
+		}
+		
+			
 		
 		for (PieSlice slice : slices){
 			totalValue += slice.getValue();
@@ -112,38 +155,44 @@ public class PieGraph extends View {
 			count++;
 		}
 		
+		drawCompleted = true;
+		
 		
 	}
 	
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 
-	    Point point = new Point();
-	    point.x = (int) event.getX();
-	    point.y = (int) event.getY();
-	    
-	    int count = 0;
-	    for (PieSlice slice : slices){
-	    	Region r = new Region();
-	    	r.setPath(slice.getPath(), slice.getRegion());
-            if (r.contains(point.x, point.y) && event.getAction() == MotionEvent.ACTION_DOWN) {
-                indexSelected = count;
-	    	} else if (event.getAction() == MotionEvent.ACTION_UP){
-                if (r.contains(point.x, point.y) && listener != null) {
-                    if (indexSelected > -1){
-		    			listener.onClick(indexSelected);
-	    			}
-	    			indexSelected = -1;
-	    		}
-	    		
-	    	}
-		    count++;
+		if (drawCompleted) {
+		
+			Point point = new Point();
+			point.x = (int) event.getX();
+			point.y = (int) event.getY();
+			
+			int count = 0;
+			for (PieSlice slice : slices){
+				Region r = new Region();
+				r.setPath(slice.getPath(), slice.getRegion());
+				if (r.contains((int)point.x,(int) point.y) && event.getAction() == MotionEvent.ACTION_DOWN){
+					indexSelected = count;
+				} else if (event.getAction() == MotionEvent.ACTION_UP){
+					if (r.contains((int)point.x,(int) point.y) && listener != null){
+						if (indexSelected > -1){
+							listener.onClick(indexSelected);
+						}
+						indexSelected = -1;
+					}
+					
+				}
+				else if(event.getAction() == MotionEvent.ACTION_CANCEL)
+					indexSelected = -1;
+				count++;
+			}
+			
+			if (event.getAction() == MotionEvent.ACTION_DOWN || event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL){
+				postInvalidate();
+			}
 	    }
-	    
-	    if (event.getAction() == MotionEvent.ACTION_DOWN || event.getAction() == MotionEvent.ACTION_UP){
-	    	postInvalidate();
-	    }
-	    
 	    
 
 	    return true;
@@ -175,6 +224,30 @@ public class PieGraph extends View {
 		postInvalidate();
 	}
 	
+	public Bitmap getCenterBitmap() {
+		return centerBitmap;
+	}
+
+	public void setCenterBitmap(Bitmap centerBitmap) {
+		Bitmap output = Bitmap.createBitmap(centerBitmap.getWidth(),
+				centerBitmap.getHeight(), Config.ARGB_8888);
+        Canvas canvas = new Canvas(output);
+
+        final int color = 0xff424242;
+        final Paint paint = new Paint();
+        final Rect rect = new Rect(0, 0, centerBitmap.getWidth(),
+        		centerBitmap.getHeight());
+
+        paint.setAntiAlias(true);
+        canvas.drawARGB(0, 0, 0, 0);
+        paint.setColor(color);
+        canvas.drawCircle(centerBitmap.getWidth() / 2,
+        		centerBitmap.getHeight() / 2, centerBitmap.getWidth() / 2, paint);
+        paint.setXfermode(new PorterDuffXfermode(Mode.SRC_IN));
+        canvas.drawBitmap(centerBitmap, rect, rect, paint);
+		this.centerBitmap = output;
+	}
+
 	public void removeSlices(){
 		for (int i = slices.size()-1; i >= 0; i--){
 			slices.remove(i);

@@ -26,46 +26,85 @@ package com.echo.holographlibrary;
 import java.util.ArrayList;
 
 public class Line {
+	private ArrayList<LinePoint> points = new ArrayList<LinePoint>();
+	private int color;
+	private boolean showPoints = true;
+	// 6 has been the default prior to the addition of custom stroke widths
+	private int strokeWidth = 6;
+	// since this is a new addition, it has to default to false to be backwards compatible
+	private boolean isUsingDips = false;
 
-    private ArrayList<LinePoint> points = new ArrayList<LinePoint>();
-    private int color;
-    private boolean showPoints = true;
+	private String description;
 
-
-    public int getColor() {
-        return color;
-    }
-
-    public void setColor(int color) {
-        this.color = color;
-    }
-
-    public ArrayList<LinePoint> getPoints() {
-        return points;
-    }
-
-    public void setPoints(ArrayList<LinePoint> points) {
-        this.points = points;
-    }
-
-    public void addPoint(LinePoint point) {
-        points.add(point);
-    }
-
-    public LinePoint getPoint(int index) {
-        return points.get(index);
-    }
-
-    public int getSize() {
-        return points.size();
-    }
-
-    public boolean isShowingPoints() {
-        return showPoints;
-    }
-
-    public void setShowingPoints(boolean showPoints) {
-        this.showPoints = showPoints;
-    }
-
+	public boolean isUsingDips() {
+		return isUsingDips;
+	}
+	public void setUsingDips(boolean treatSizesAsDips) {
+		this.isUsingDips = treatSizesAsDips;
+	}
+	public int getStrokeWidth() {
+		return strokeWidth;
+	}
+	public void setStrokeWidth(int strokeWidth) {
+		if (strokeWidth < 0) {
+			throw new IllegalArgumentException("strokeWidth must not be less than zero");
+		}
+		this.strokeWidth = strokeWidth;
+	}
+	public int getColor() {
+		return color;
+	}
+	public void setColor(int color) {
+		this.color = color;
+	}
+	public ArrayList<LinePoint> getPoints() {
+		return points;
+	}
+	public void setPoints(ArrayList<LinePoint> points) {
+		this.points = points;
+	}
+	public void addPoint(LinePoint point){
+		LinePoint p;
+		for(int i = 0; i < points.size(); i++){
+			p = points.get(i);
+			if(point.getX() < p.getX()){
+				points.add(i, point);
+				return;
+			}
+		}
+		points.add(point);
+	}
+	
+	public void removePoint(LinePoint point){
+		points.remove(point);
+	}
+	public LinePoint getPoint(int index){
+		return points.size() > 0 ? points.get(index) : new LinePoint(0, 0);
+	}
+	
+	public LinePoint getPoint(float x, float y){
+		LinePoint p;
+		for(int i = 0; i < points.size(); i++){
+			p = points.get(i);
+			if(p.getX() == x && p.getY() == y)
+				return p;
+		}
+		return null;
+	}
+	public int getSize(){
+		return points.size();
+	}
+	public String getDescription() {
+		return description;
+	}
+	public void setDescription(String description) {
+		this.description = description;
+	}
+	public boolean isShowingPoints() {
+		return showPoints;
+	}
+	public void setShowingPoints(boolean showPoints) {
+		this.showPoints = showPoints;
+	}
+	
 }

@@ -26,16 +26,25 @@ package com.echo.holographlibrary;
 
 import android.graphics.Path;
 import android.graphics.Region;
+import android.graphics.drawable.Drawable;
 
 public class LinePoint {
 
-    private float x = 0;
+	private float x = 0;
 	private float y = 0;
 	private Path path;
 	private Region region;
-	
-	public LinePoint(float x, float y) {
-		super();
+    private String color;
+    private Drawable drawable;
+
+    public LinePoint(){
+    }
+
+	public LinePoint(double x, double y){
+		this.x = (float)x;
+		this.y = (float)y;
+	}
+	public LinePoint(float x, float y){
 		this.x = x;
 		this.y = y;
 	}
@@ -57,7 +66,14 @@ public class LinePoint {
 	public void setY(float y) {
 		this.y = y;
 	}
-
+	
+	public void setX(double x){
+		this.x = (float) x;
+	}
+	
+	public void setY(double y){
+		this.y = (float) y;
+	}
 	public Region getRegion() {
 		return region;
 	}
@@ -73,5 +89,25 @@ public class LinePoint {
 	public void setPath(Path path) {
 		this.path = path;
 	}
+	
+	@Override
+	public String toString(){
+		return "x= " + x + ", y= " + y;
+	}
 
+    public String getColor() {
+        return color != null ? color : "#33B5E5";
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
+	public Drawable getDrawable() {
+		return drawable;
+	}
+
+	public void setDrawable(Drawable drawable) {
+		this.drawable = drawable;
+	}
 }
